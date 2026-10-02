@@ -18,6 +18,8 @@
 // @grant        GM.getValue
 // @grant        GM.setValue
 // @grant        unsafeWindow
+// @updateURL    https://raw.githubusercontent.com/b07Aarav/DSScripts/refs/heads/main/Sheol%20Turbo%20Dungeon%20Automator%20I.user.js
+// @downloadURL  https://raw.githubusercontent.com/b07Aarav/DSScripts/refs/heads/main/Sheol%20Turbo%20Dungeon%20Automator%20I.user.js
 // ==/UserScript==
 
 (async () => {
@@ -9373,7 +9375,7 @@ function buildUI() {
   _vfbCon.id = 'vfb-console';
   const tabsEl = document.createElement('div');
   tabsEl.className = 'vfb-tabs';
-  tabsEl.innerHTML = `
+  tabsEl.innerHTML = `    
       <button id="vfb-tab-s"><i>📊</i><span>Status</span></button>
       <button id="vfb-tab-l"><i>📋</i><span>Log</span></button>
       <button id="vfb-tab-g"><i>⚙️</i><span>Setup</span></button>
@@ -10088,17 +10090,17 @@ document.readyState === 'loading'
     // 1. The Worker code (runs in a separate background thread)
     const workerCode = `
         const timers = new Map();
-
+        
         self.onmessage = function(e) {
             const { type, id, delay, isInterval } = e.data;
-
+            
             if (type === 'start') {
                 const timerFn = isInterval ? setInterval : setTimeout;
                 const nativeId = timerFn(() => {
                     self.postMessage({ id });
                 }, delay);
                 timers.set(id, { nativeId, isInterval });
-            }
+            } 
             else if (type === 'clear') {
                 if (timers.has(id)) {
                     const { nativeId, isInterval } = timers.get(id);
