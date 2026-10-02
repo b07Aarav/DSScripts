@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Sheol Turbo Dungeon Automator I
 // @namespace    sheol-guild-dungeon-turbo
-// @version      6.0.0
+// @version      6.0.1
 // @description  TURBO build: parallel attacks & looting, neon cyber UI, live stats, card-style settings
 // @author       Arky, Sheol & Wander
 // @icon         data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%2300e5ff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23ff2e63%22%2F%3E%3C%2FlinearGradient%3E%3CradialGradient%20id%3D%22f%22%20cx%3D%2250%25%22%20cy%3D%2260%25%22%20r%3D%2260%25%22%3E%3Cstop%20offset%3D%220%22%20stop-color%3D%22%230b3a55%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23070b14%22%2F%3E%3C%2FradialGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M32%203%2057%2017V42C57%2052%2045%2059%2032%2062%2019%2059%207%2052%207%2042V17Z%22%20fill%3D%22url%28%23f%29%22%20stroke%3D%22url%28%23g%29%22%20stroke-width%3D%223%22%2F%3E%3Cg%20stroke%3D%22%23f3e8ff%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M18%2015%2046%2043M46%2015%2018%2043%22%2F%3E%3C%2Fg%3E%3Cg%20stroke%3D%22%23ffc857%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%3E%3Cpath%20d%3D%22M14%2040%2022%2032M50%2040%2042%2032%22%2F%3E%3C%2Fg%3E%3Cpath%20d%3D%22M32%2044C24%2039%2027%2031%2032%2024%2034%2030%2041%2033%2038%2040%2037%2042%2035%2044%2032%2044Z%22%20fill%3D%22url%28%23g%29%22%2F%3E%3Cpath%20d%3D%22M32%2041C29%2038%2030%2034%2032%2031%2033%2034%2036%2035%2035%2038%2034%2040%2033%2041%2032%2041Z%22%20fill%3D%22%23ffd28a%22%2F%3E%3C%2Fsvg%3E
@@ -175,16 +175,16 @@
             monsterAttackLS: {},  // { nameKey: '5' }
             monsterAttackSkill: {},  // { nameKey: 'POWER_SLASH' }
             monsterAttackCap: {
-                "creator's chosen executor": '110M',
-                'warform of the creator': '81M',
-                'zenith lancer': '39M',
-                'crown resonator': '36M',
-                'null choir adept': '18M',
-                'bastion iterant': '23M',
-                'calibration warden': '17M',
-                'prismblade reaver': '10M',
-                'mireglass stalker': '12M',
-                'siege-root howler': '10M',
+                "creator's chosen executor": '110,000,000',
+                'warform of the creator': '81,000,000',
+                'zenith lancer': '39,000,000',
+                'crown resonator': '36,000,000',
+                'null choir adept': '18,000,000',
+                'bastion iterant': '23,000,000',
+                'calibration warden': '17,000,000',
+                'prismblade reaver': '10,000,000',
+                'mireglass stalker': '12,000,000',
+                'siege-root howler': '10,000,000',
             },
             monsterAttackMax: {},   // { nameKey: '2' }  0 = hit all
             bossCaps: defBossCaps,
@@ -317,6 +317,7 @@
     }
 
     const settings = loadAllSettings();
+    // (normalizeSavedCaps() is called once, right after the helpers are defined)
 
     // ===== TURBO helpers =====
     function getTurbo() { return Math.min(20, Math.max(1, parseIntStrict(settings.turbo, 8))); }
@@ -1664,7 +1665,7 @@
                         </div>
                         <div class="sh-field sh-f-cap">
                             <label>Damage cap</label>
-                            <input type="text" class="ds-mon-input ac-mon-cap" data-name="${shEsc(key)}" value="${shEsc(cap)}" placeholder="0 = none">
+                            <input type="text" class="ds-mon-input ac-mon-cap" data-name="${shEsc(key)}" value="${shEsc(fullCap(cap))}" placeholder="10,000,000">
                         </div>
                         <label class="sh-smart" title="Smart attack">
                             <input type="checkbox" class="ac-mon-smart" data-name="${shEsc(key)}" ${smart}><span>🧠 Smart</span>
@@ -2611,6 +2612,24 @@
        STRATEGY PARSER
     ====================== */
 
+    // Damage caps are shown/stored as full numbers (10,000,000), never 10M / 1.2B.
+    function fullCap(raw) {
+        const n = parseCountWithSuffix(String(raw ?? ''), NaN);
+        return Number.isFinite(n) && n > 0 ? n.toLocaleString('en-US') : String(raw ?? '').trim();
+    }
+    function normalizeSavedCaps() {
+        let changed = false;
+        for (const bag of [settings.monsterAttackCap, settings.bossCaps]) {
+            if (!bag) continue;
+            for (const k of Object.keys(bag)) { const v = fullCap(bag[k]); if (v !== bag[k]) { bag[k] = v; changed = true; } }
+        }
+        if (changed) persistAllSettings();
+    }
+    normalizeSavedCaps();
+    document.addEventListener('change', e => {   // typed 10M / 1.2B -> rewritten as 10,000,000 / 1,200,000,000
+        const el = e.target;
+        if (el && el.classList && (el.classList.contains('ac-mon-cap') || el.classList.contains('bc-cap'))) el.value = fullCap(el.value);
+    }, true);
     function parseCountWithSuffix(rawValue, fallback = 1) {
         let text = String(rawValue ?? '').trim().toUpperCase().replace(/[_\s]/g, '');
         if (/^\d{1,3}(,\d{3})+$/.test(text)) text = text.replace(/,/g, ''); // 10,000,000 -> 10000000
@@ -3181,7 +3200,7 @@
 
                 <div id="bm_caps" class="sh-panel">
                     <div class="sh-toolbar" style="margin-bottom:10px;">
-                        <span style="color:var(--sh-mute); font-size:11.5px;">Flip a switch to attack a boss. Cap examples: <b style="color:#ffc857;">3B</b>, <b style="color:#ffc857;">2.1M</b>.</span>
+                        <span style="color:var(--sh-mute); font-size:11.5px;">Flip a switch to attack a boss. Type the full number, e.g. <b style="color:#ffc857;">3,000,000,000</b> or <b style="color:#ffc857;">2100000</b>.</span>
                         <span style="margin-left:auto; display:flex; gap:6px;">
                             <button id="bm_all_on" class="sh-tbtn">All on</button>
                             <button id="bm_all_off" class="sh-tbtn">All off</button>
@@ -3305,7 +3324,7 @@
                     </div>
                     <div class="sh-field sh-f-cap">
                         <label>Damage cap</label>
-                        <input type="text" class="bc-cap" value="${shEsc(cap)}" placeholder="Cap">
+                        <input type="text" class="bc-cap" value="${shEsc(fullCap(cap))}" placeholder="10,000,000">
                     </div>
                     <label class="sh-smart" title="Smart attack">
                         <input type="checkbox" class="bc-smart" data-bossname="${shEsc(key)}" ${smartAttack}><span>🧠 Smart</span>
@@ -8006,6 +8025,8 @@ function fmt(ms) {
   return h ? `${h}h ${m%60}m` : `${m}m ${s%60}s`;
 }
 
+// full number for cap inputs (10,000,000 — never 10M / 1.2B)
+function fullDmg(n) { return Math.round(Number(n) || 0).toLocaleString('en-US'); }
 function fmtDmg(n) {
   if (n >= 1_000_000_000) return `${(n/1e9).toFixed(1)}B`;
   if (n >= 1_000_000)     return `${(n/1e6).toFixed(1)}M`;
@@ -8683,9 +8704,9 @@ function renderSettings() {
       const dgb  = mode === 'dungeonboss';
       s += `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;padding-left:0" class="vfb-trow">
         <span style="color:#9cf;font-size:10px">${dgb ? 'max dmg' : t.duel ? 'P1 stop at' : 'stop at'}</span>
-        <input style="${IN};width:84px" data-fld="dmg" data-wi="${wi}" data-name="${esc(name)}" value="${esc(fmtDmg(t.dmgTarget))}" title="${dgb ? 'GUILD CAP — the bot stops STRICTLY under this much damage (never crosses it)' : t.duel ? 'Phase 1 damage target (leaderboard). The bot attacks phase 1 up to here, then plays the Duel Phase.' : "stop attacking once you've dealt this much damage"}">
+        <input style="${IN};width:118px" data-fld="dmg" data-wi="${wi}" data-name="${esc(name)}" value="${esc(fullDmg(t.dmgTarget))}" title="${dgb ? 'GUILD CAP — the bot stops STRICTLY under this much damage (never crosses it)' : t.duel ? 'Phase 1 damage target (leaderboard). The bot attacks phase 1 up to here, then plays the Duel Phase.' : "stop attacking once you've dealt this much damage"}">
         ${t.duel ? `<span style="color:#c9a0ff;font-size:10px" title="Phase 3 damage target (combined total damage to this boss = the XP cap number shown on the card). After winning the duel the bot attacks phase 3 up to here.">P3 stop at</span>
-        <input style="${IN};width:70px" data-fld="phase3" data-wi="${wi}" data-name="${esc(name)}" value="${esc(fmtDmg(t.phase3Dmg || t.dmgTarget))}" title="Phase 3 target — set this to the boss's XP cap (the big number on the card), e.g. 54b">` : ''}
+        <input style="${IN};width:118px" data-fld="phase3" data-wi="${wi}" data-name="${esc(name)}" value="${esc(fullDmg(t.phase3Dmg || t.dmgTarget))}" title="Phase 3 target — set this to the boss's XP cap (the big number on the card), e.g. 54,000,000,000">` : ''}
         <label class="vfb-seg" style="color:#fab" title="Timed boss: fight to the damage target, then move on (may use potions)">
           <input type="radio" name="${grp}" data-act="mode" data-wi="${wi}" data-name="${esc(name)}" value="timed" ${mode==='timed'?'checked':''}> ⏰ Timed
         </label>
@@ -8719,7 +8740,7 @@ function renderSettings() {
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span style="flex:1;color:#c9a0ff;font-size:12px">🏰 ${esc((t&&t.label)||w.label)} <span style="color:#556;font-size:9px">dgmid ${esc(w.dgmid)}</span></span>
         <span style="color:#9cf;font-size:10px">stop at</span>
-        <input style="${IN};width:74px" data-fld="dmg" data-wi="${wi}" data-name="${esc((t&&(t.srcName||t.label))||'')}" value="${esc(fmtDmg(t?t.dmgTarget:0))}">
+        <input style="${IN};width:118px" data-fld="dmg" data-wi="${wi}" data-name="${esc((t&&(t.srcName||t.label))||'')}" value="${esc(fullDmg(t?t.dmgTarget:0))}">
         <button data-action="delwave" data-wi="${wi}" title="delete" style="background:#3a2a2a;color:#f88;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font:11px monospace">🗑</button>
       </div>
       ${srcLabel?`<div style="color:#556;font-size:9px;margin-top:3px">📄 ${esc(srcLabel)}</div>`:''}</div>`;
@@ -8732,7 +8753,7 @@ function renderSettings() {
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span style="flex:1;color:#f0b060;font-size:12px">🎯 ${esc((t&&t.label)||w.label)} <span style="color:#556;font-size:9px">id ${esc(w.monster_id)}</span></span>
         <span style="color:#9cf;font-size:10px">do exactly</span>
-        <input style="${IN};width:74px" data-fld="dmg" data-wi="${wi}" data-name="${esc((t&&(t.srcName||t.label))||'')}" value="${esc(fmtDmg(t?t.dmgTarget:0))}" title="attack until YOUR total damage on this boss reaches this — near-exact (overshoot ≤ one 1-stamina hit)">
+        <input style="${IN};width:118px" data-fld="dmg" data-wi="${wi}" data-name="${esc((t&&(t.srcName||t.label))||'')}" value="${esc(fullDmg(t?t.dmgTarget:0))}" title="attack until YOUR total damage on this boss reaches this — near-exact (overshoot ≤ one 1-stamina hit)">
         <button data-action="delwave" data-wi="${wi}" title="delete this boss target" style="background:#3a2a2a;color:#f88;border:none;border-radius:4px;padding:2px 6px;cursor:pointer;font:11px monospace">🗑</button>
       </div>
       <div style="color:#8a7a5a;font-size:9px;margin-top:3px;line-height:1.4">attacks this exact mob up to the damage above (potions on), then stops. 🗑 to remove when you're done.</div>
@@ -8852,10 +8873,10 @@ function wireSettings() {
     const t = targetFor(w, el.dataset.name); if (!t) return;
     if (f === 'dmg') {
       const n = parseAmount(el.value);
-      if (n != null) t.dmgTarget = n;
+      if (n != null) { t.dmgTarget = n; el.value = fullDmg(n); }
     } else if (f === 'phase3') {
       const n = parseAmount(el.value);
-      if (n != null) t.phase3Dmg = n;
+      if (n != null) { t.phase3Dmg = n; el.value = fullDmg(n); }
     } else if (f === 'killLimit') {
       const raw = el.value.replace(/[^\d]/g, '');
       t.killLimit = raw === '' ? 1 : Math.max(1, parseInt(raw));
@@ -9009,7 +9030,7 @@ function renderGuide() {
     `)}
 
     ${sec('✍️', 'The boxes under a target', `
-      <b>stop at / max dmg</b> — total damage the bot should deal to that monster. Short forms work: <i>100m</i> = 100 million, <i>2b</i> = 2 billion.<br>
+      <b>stop at / max dmg</b> — total damage the bot should deal to that monster. Type the full number, e.g. <i>100,000,000</i> or <i>2000000000</i>.<br>
       <b>kills</b> (Farm only) — how many monsters to kill before stopping.<br>
       <b>match name ⊇</b> — the bot only attacks monsters whose name <b>contains</b> these words. Leave the scanned name as it is. Wrong or empty = it may hit the wrong monster.<br>
       <b>✕</b> — removes the target.
@@ -9986,7 +10007,7 @@ function armBoxHTML(b) {
       <div><label>Hits</label>${stepper('hits')}</div>
       <div><label>Max mobs</label><span title="Bosses are single targets — kept for layout, not used">${stepper('max')}</span></div>
       <div class="vfb-arm-wide"><label>Skill</label><select class="vfb-arm-in" data-k="${tEsc(key)}" data-f="skill">${opts}</select></div>
-      <div class="vfb-arm-wide"><label>Damage cap</label><input type="text" class="vfb-arm-in" data-k="${tEsc(key)}" data-f="cap" value="${tEsc(c.cap)}" placeholder="0 = none"></div>
+      <div class="vfb-arm-wide"><label>Damage cap</label><input type="text" class="vfb-arm-in" data-k="${tEsc(key)}" data-f="cap" value="${tEsc(c.cap)}" placeholder="10,000,000"></div>
       <label class="vfb-arm-smart" title="Smart attack: exact-damage tiers, never overshoots the cap (ignores Skill/Hits)"><input type="checkbox" class="vfb-arm-in" data-k="${tEsc(key)}" data-f="smart" ${c.smart ? 'checked' : ''}><span>🧠 Smart</span></label>
     </div></div>`;
 }
@@ -10034,6 +10055,7 @@ function wireArmUI() {
     }
     if (el.classList.contains('vfb-arm-in')) {
       const c = armCfg(el.dataset.k), f = el.dataset.f;
+      if (f === 'cap') { const n = parseAmount(el.value); if (n != null) el.value = fullDmg(n); }
       c[f] = f === 'smart' ? el.checked : (f === 'hits' || f === 'max') ? Math.max(f === 'hits' ? 1 : 0, parseInt(el.value) || 0) : el.value;
       save();
     }
